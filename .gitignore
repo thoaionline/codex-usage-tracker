@@ -1,0 +1,25 @@
+node_modules/
+coverage/
+*.tgz
+.env
+.env.*
+
+# Credentials and local Codex data
+.codex/
+auth.json
+.credentials.json
+credentials.json
+*.pem
+*.key
+
+# Private monitor state and captured usage responses
+history-*.json
+status.json
+usage.json
+usage.jsonl
+usage-*.json
+state/
+.state/
+*.log
+*.sqlite*
+*.tmp

@@ -1,0 +1,19 @@
+{
+  "name": "codex-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live terminal monitor for Codex subscription usage and reset windows",
+  "type": "module",
+  "bin": {
+    "codex-monitor": "bin/codex-monitor.mjs"
+  },
+  "scripts": {
+    "start": "node bin/codex-monitor.mjs",
+    "monitor": "node bin/codex-monitor.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "UNLICENSED"
+}
