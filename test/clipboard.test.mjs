@@ -41,16 +41,32 @@ test('clipboard uses stdin and falls back when a desktop utility fails', async t
   await writeFile(join(dir, 'wl-copy'), `#!${process.execPath}\nprocess.stderr.write('SECRET'); process.exit(1);\n`, { mode: 0o700 });
   await writeFile(join(dir, 'xclip'), `#!${process.execPath}\nimport { writeFileSync } from 'node:fs';\nlet input = ''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => writeFileSync(process.env.COPY_RESULT, JSON.stringify({ input, args: process.argv.slice(2) })));\n`, { mode: 0o700 });
   const result = join(dir, 'result');
-  const env = { ...process.env, PATH: dir, WAYLAND_DISPLAY: 'test', DISPLAY: ':0', COPY_RESULT: result };
-  await copyToClipboard('{"secret":"日本"}', { platform: 'linux', env });
+  const env = { ...process.env, WSL_DISTRO_NAME: '', WSL_INTEROP: '', PATH: dir, WAYLAND_DISPLAY: 'test', DISPLAY: ':0', COPY_RESULT: result };
+  await copyToClipboard('{"secret":"日本"}', { platform: 'linux', release: '', env });
   assert.deepEqual(JSON.parse(await readFile(result, 'utf8')), {
     input: '{"secret":"日本"}', args: ['-selection', 'clipboard'],
   });
-  await assert.rejects(copyToClipboard('SECRET', { platform: 'linux', env: { ...env, DISPLAY: '' } }), error => {
+  await assert.rejects(copyToClipboard('SECRET', { platform: 'linux', release: '', env: { ...env, DISPLAY: '' } }), error => {
     assert.match(error.message, /Clipboard unavailable/);
     assert.doesNotMatch(error.message, /SECRET/);
     return true;
   });
+});
+
+test('WSL copies Unicode to Windows without a Linux display server', async t => {
+  const dir = await directory(t);
+  const result = join(dir, 'result');
+  await writeFile(join(dir, 'clip.exe'), `#!${process.execPath}\nconst { writeFileSync } = require('node:fs');\nconst chunks = []; process.stdin.on('data', chunk => chunks.push(chunk)); process.stdin.on('end', () => writeFileSync(process.env.COPY_RESULT, Buffer.concat(chunks)));\n`, { mode: 0o700 });
+  const env = { ...process.env, PATH: dir, WSL_DISTRO_NAME: '', WSL_INTEROP: '', WAYLAND_DISPLAY: '', DISPLAY: '', COPY_RESULT: result };
+  const json = '{"token":"日本🔑"}';
+  for (const detection of [
+    { env: { ...env, WSL_DISTRO_NAME: 'Ubuntu' }, release: '' },
+    { env: { ...env, WSL_INTEROP: '/run/WSL/1_interop' }, release: '' },
+    { env, release: '5.15.0-microsoft-standard-WSL2' },
+  ]) {
+    await copyToClipboard(json, { platform: 'linux', ...detection });
+    assert.deepEqual(await readFile(result), Buffer.from(`\ufeff${json}`, 'utf16le'));
+  }
 });
 
 test('compact dashboard preserves copy feedback and shortcut', () => {
