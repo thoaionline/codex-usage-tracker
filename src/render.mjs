@@ -105,11 +105,12 @@ export function render(state, options, nowMs = Date.now()) {
   if (state.error && state.windows !== null) line(`Error: ${state.error} / showing last good data`, 31);
   if (state.warning) line(`Warning: ${state.warning}`, 33);
   if (state.windows !== null && !state.persistent) line('Burn history is session-only; no account identity was reported.', 2);
-  if (options.live) line(`Refresh ${options.interval}s / q or Ctrl-C to quit`, 2);
+  if (options.live && state.clipboard) line(state.clipboard, 2);
+  if (options.live) line(`Refresh ${options.interval}s / c copy auth / q or Ctrl-C quit`, 2);
   if (options.live && lines.length >= rows) {
     const footer = lines.at(-1);
     lines.splice(rows - 3);
-    lines.push(`  ${'More: enlarge terminal or use --once'.slice(0, width)}`, footer);
+    lines.push(`  ${safeText(state.clipboard || 'More: enlarge terminal or use --once').slice(0, width)}`, footer);
   }
   return `${lines.join('\n')}\n`;
 }

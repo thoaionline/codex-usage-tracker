@@ -7,6 +7,7 @@ import { fetchUsage } from '../src/codex.mjs';
 import { extractWindows, recordSamples, burnRate } from '../src/usage.mjs';
 import { historyPath, loadHistory, writeState } from '../src/history.mjs';
 import { render, safeText } from '../src/render.mjs';
+import { copyAuthJson } from '../src/clipboard.mjs';
 
 const HELP = `codex-monitor 0.1.0 - live Codex subscription usage
 
@@ -29,10 +30,11 @@ Usage: codex-monitor [options]
 Requires Node.js >=22 and a Codex CLI supporting app-server. Sign in with
 'codex login' using ChatGPT. API-key billing is not subscription quota usage.
 Uses only initialize and account/rateLimits/read; never starts model turns.
-Credentials and token refresh stay with Codex. CODEX_HOME is honored.
+Token refresh stays with Codex. CODEX_HOME is honored.
 
-An interactive terminal redraws every second; q or Ctrl-C quits. Redirected
-output automatically prints once. NO_COLOR and TERM=dumb disable colors;
+An interactive terminal redraws every second; q or Ctrl-C quits.
+Press c to copy auth.json as CODEX_AUTH_JSON to the system clipboard.
+Redirected output automatically prints once. NO_COLOR and TERM=dumb disable colors;
 TERM=dumb also disables interactive redraws. --json never writes monitor state.
 
 Usage bars show consumption; time bars show elapsed quota-window time.
@@ -121,8 +123,10 @@ async function main(opts) {
   let tick;
   let screen = false;
   const wasRaw = process.stdin.isRaw;
+  let copyAuth;
   const onKey = (key) => {
     if (key.includes('q') || key.includes('\x03')) stop();
+    else if (key === 'c') void copyAuth?.();
   };
   try {
     if (opts.json) {
@@ -144,6 +148,24 @@ async function main(opts) {
       process.stdout.write(`${screen ? '\x1b[H\x1b[2J' : ''}${render(state, {
         ...opts, columns: process.stdout.columns, rows: process.stdout.rows,
       })}`);
+    };
+    let copying = false;
+    copyAuth = async () => {
+      if (copying || controller.signal.aborted) return;
+      copying = true;
+      state.clipboard = 'Copying CODEX_AUTH_JSON...';
+      draw();
+      try {
+        await copyAuthJson({
+          codexHome: opts['codex-home'], signal: controller.signal,
+        });
+        state.clipboard = 'CODEX_AUTH_JSON copied to clipboard.';
+      } catch (error) {
+        state.clipboard = safeText(error.message);
+      } finally {
+        copying = false;
+        draw();
+      }
     };
     const refresh = async () => {
       state.warning = null;

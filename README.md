@@ -17,6 +17,8 @@ npm start
 
 No project dependencies need installing. The monitor uses your existing Codex login through `codex app-server`; it never starts model turns. Press **q** or **Ctrl-C** to quit.
 
+Press **c** in the live dashboard to copy **CODEX_AUTH_JSON** to your clipboard. This copies the raw JSON contents of `auth.json` (without a variable assignment) from `--codex-home`, `$CODEX_HOME`, or `~/.codex`, in that order. The dashboard confirms the result without displaying credentials. Requires `pbcopy` on macOS, `clip.exe` on Windows, or `wl-copy` (Wayland), `xclip`, or `xsel` (X11) on Linux. The copied value contains login credentials; paste it only into a trusted destination.
+
 ## Usage
 
 ```bash
